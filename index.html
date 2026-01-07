@@ -9,7 +9,7 @@
         body {
             font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif;
             height: 100vh;
-            background: #000 url('https://boheyho.com/wp-content/uploads/2025/10/IMG_3602-1.jpg') center center / cover no-repeat fixed;
+            background: #000 url('background.jpg') center center / cover no-repeat fixed;
             color: white;
             overflow: hidden;
             display: flex;
@@ -34,7 +34,6 @@
             font-size: 2.2vh;
             padding: 1vh 3vh;
         }
-        #timer { font-size: 4vh; font-weight: bold; }
         #score-display { font-size: 3vh; }
 
         #question {
@@ -98,7 +97,7 @@
             transition: opacity 0.4s;
             pointer-events: none;
             text-shadow: 0 0 20px black;
-            white-space: pre-line; /* Για να δείχνει \n */
+            white-space: pre-line;
         }
 
         #next-btn, #confirm-btn {
@@ -166,7 +165,6 @@
 <div id="game-container">
     <div id="top-bar">
         <div>Ερώτηση <span id="current">1</span> / <span id="total"></span></div>
-        <div id="timer">20</div>
         <div id="score-display">Σκορ: <span id="score">0</span></div>
     </div>
 
@@ -239,8 +237,6 @@
 
     let currentQuestion = 0;
     let score = 0;
-    let timeLeft = 20;
-    let timer;
     let selectedMulti = [];
 
     function startIntroAnimation(callback) {
@@ -323,7 +319,6 @@
                 document.getElementById('confirm-btn').style.display = 'block';
             }
         } else {
-            // text or doubletext
             document.getElementById('options-container').style.display = 'none';
             let html = '<div style="width:100%; text-align:center;">' + q.question + '<br><br>';
             if (q.type === "text") {
@@ -335,22 +330,6 @@
             html += '<br><button id="submit-text" onclick="checkTextAnswer()">Υποβολή</button></div>';
             document.getElementById('question').innerHTML = html;
         }
-
-        timeLeft = 20;
-        document.getElementById('timer').textContent = timeLeft;
-        clearInterval(timer);
-        timer = setInterval(() => {
-            timeLeft--;
-            document.getElementById('timer').textContent = timeLeft;
-            if (timeLeft <= 0) {
-                if (q.type === "multi") selectedMulti = [];
-                if (q.type === "text" || q.type === "doubletext") {
-                    checkTextAnswer(); // Αυτόματη υποβολή αν τελειώσει ο χρόνος
-                } else {
-                    checkAnswer(-1);
-                }
-            }
-        }, 1000);
     }
 
     function toggleMulti(opt) {
@@ -369,7 +348,6 @@
     }
 
     function checkAnswer(selected) {
-        clearInterval(timer);
         const q = questions[currentQuestion];
         const feedback = document.getElementById('feedback');
         let correct = false;
@@ -382,12 +360,8 @@
             correct = JSON.stringify(selected) === JSON.stringify(correctArr);
         }
 
-        if (selected === -1 || (Array.isArray(selected) && selected.length === 0)) {
-            feedback.textContent = "Τέλος χρόνου!";
-            feedback.style.color = "#e91e3f";
-        } else if (correct) {
-            const points = Math.round(timeLeft * 50);
-            score += points;
+        if (correct) {
+            score += 1000; // Fixed points since no timer
             document.getElementById('score').textContent = score;
             feedback.textContent = "Σωστό!";
             feedback.style.color = "#39db50";
@@ -403,7 +377,6 @@
     }
 
     function checkTextAnswer() {
-        clearInterval(timer);
         const q = questions[currentQuestion];
         const feedback = document.getElementById('feedback');
 
@@ -412,8 +385,7 @@
             const correct = ans === q.correct.toLowerCase();
 
             if (correct) {
-                const points = Math.round(timeLeft * 50);
-                score += points;
+                score += 1000;
                 document.getElementById('score').textContent = score;
                 feedback.textContent = "Σωστό!";
                 feedback.style.color = "#39db50";
@@ -435,8 +407,7 @@
             let correct = wrongParts.length === 0;
 
             if (correct) {
-                const points = Math.round(timeLeft * 50);
-                score += points;
+                score += 1000;
                 document.getElementById('score').textContent = score;
                 feedback.textContent = "Σωστό!";
                 feedback.style.color = "#39db50";
