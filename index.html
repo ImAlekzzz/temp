@@ -91,13 +91,14 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 10vh;
+            font-size: 8vh;
             font-weight: bold;
             opacity: 0;
             transition: opacity 0.4s;
             pointer-events: none;
             text-shadow: 0 0 20px black;
             white-space: pre-line;
+            text-align: center;
         }
 
         #next-btn, #confirm-btn {
@@ -232,6 +233,11 @@
             question: "Στη ____ αυτοκρατορία οικοδομήθηκαν πολλές ______",
             correct1: "βυζαντινή",
             correct2: "εκκλησίες"
+        },
+        {
+            type: "text",
+            question: "Η Κέα είναι το δυτικότερο νησί των _____",
+            correct: "Κυκλάδων"
         }
     ];
 
@@ -351,22 +357,25 @@
         const q = questions[currentQuestion];
         const feedback = document.getElementById('feedback');
         let correct = false;
+        let correctText = "";
 
         if (q.type === "mc") {
             correct = selected === q.correct;
+            correctText = q.options[q.correct];
         } else if (q.type === "multi") {
             selected.sort((a,b) => a-b);
             const correctArr = q.correct.slice().sort((a,b) => a-b);
             correct = JSON.stringify(selected) === JSON.stringify(correctArr);
+            correctText = q.correct.map(i => q.options[i]).join(" και ");
         }
 
         if (correct) {
-            score += 1000; // Fixed points since no timer
+            score += 1000;
             document.getElementById('score').textContent = score;
             feedback.textContent = "Σωστό!";
             feedback.style.color = "#39db50";
         } else {
-            feedback.textContent = "Λάθος!";
+            feedback.textContent = "Λάθος!\nΣωστή απάντηση: " + correctText;
             feedback.style.color = "#e91e3f";
         }
         feedback.style.opacity = 1;
@@ -382,7 +391,8 @@
 
         if (q.type === "text") {
             let ans = document.getElementById('text-input').value.trim().toLowerCase();
-            const correct = ans === q.correct.toLowerCase();
+            const correctAns = q.correct.toLowerCase();
+            const correct = ans === correctAns;
 
             if (correct) {
                 score += 1000;
@@ -390,7 +400,7 @@
                 feedback.textContent = "Σωστό!";
                 feedback.style.color = "#39db50";
             } else {
-                feedback.textContent = "Λάθος!";
+                feedback.textContent = "Λάθος!\nΣωστή απάντηση: " + q.correct;
                 feedback.style.color = "#e91e3f";
             }
         } else if (q.type === "doubletext") {
@@ -412,7 +422,7 @@
                 feedback.textContent = "Σωστό!";
                 feedback.style.color = "#39db50";
             } else {
-                let msg = "Λάθος!\n(" + wrongParts.join(",") + ")";
+                let msg = "Λάθος!\n(" + wrongParts.join(",") + ")\nΣωστές απαντήσεις: " + q.correct1 + ", " + q.correct2;
                 feedback.textContent = msg;
                 feedback.style.color = "#e91e3f";
             }
