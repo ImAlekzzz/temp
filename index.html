@@ -35,7 +35,6 @@
             padding: 1vh 3vh;
         }
         #score-display { font-size: 3vh; }
-
         #question {
             font-size: 5.5vh;
             text-align: center;
@@ -47,7 +46,6 @@
             justify-content: center;
             text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
         }
-
         .options {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -73,19 +71,16 @@
         .option:hover { transform: scale(1.05); }
         .option.selected { transform: scale(1.1); box-shadow: 0 0 30px yellow; }
         .option.empty { visibility: hidden; pointer-events: none; }
-
-        .red    { background: #e91e3f; }
-        .blue   { background: #1e90ff; }
+        .red { background: #e91e3f; }
+        .blue { background: #1e90ff; }
         .yellow { background: #ffdb0a; color: #000; }
-        .green  { background: #39db50; }
-
+        .green { background: #39db50; }
         .shape {
             position: absolute;
             top: 15px;
             left: 20px;
             font-size: 6vh;
         }
-
         #feedback {
             position: absolute;
             top: 50%;
@@ -100,7 +95,6 @@
             white-space: pre-line;
             text-align: center;
         }
-
         #next-btn, #confirm-btn {
             position: absolute;
             bottom: 4vh;
@@ -114,7 +108,6 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.5);
             display: none;
         }
-
         #end-screen {
             position: absolute;
             inset: 0;
@@ -127,7 +120,6 @@
         #end-screen h1 { font-size: 10vh; }
         #end-screen p { font-size: 6vh; margin: 4vh; }
         #end-screen button { padding: 2vh 6vh; font-size: 4vh; background: #ff9800; border: none; border-radius: 15px; cursor: pointer; }
-
         #intro-text {
             position: absolute;
             top: 50%;
@@ -139,8 +131,8 @@
             text-shadow: 0 0 30px black;
             opacity: 0;
             pointer-events: none;
+            z-index: 100;
         }
-
         .text-input {
             padding: 2vh;
             font-size: 4vh;
@@ -162,15 +154,12 @@
     </style>
 </head>
 <body>
-
 <div id="game-container">
     <div id="top-bar">
         <div>Ερώτηση <span id="current">1</span> / <span id="total"></span></div>
         <div id="score-display">Σκορ: <span id="score">0</span></div>
     </div>
-
     <div id="question"></div>
-
     <div id="options-container" class="options">
         <div class="option red" data-index="0">
             <div class="shape">▲</div>
@@ -189,7 +178,6 @@
             <span id="opt3"></span>
         </div>
     </div>
-
     <div id="feedback"></div>
     <button id="confirm-btn" onclick="confirmMulti()">Επιβεβαίωση</button>
     <button id="next-btn" onclick="nextQuestion()">Επόμενο →</button>
@@ -245,41 +233,55 @@
     let score = 0;
     let selectedMulti = [];
 
-    function startIntroAnimation(callback) {
-        const intro = document.getElementById('intro-text');
-        intro.style.opacity = 1;
-        intro.style.left = '-100%';
+    // ────────────────────────────────────────────────
+    // Reusable section title animation
+    // ────────────────────────────────────────────────
+    function showSectionTitle(title, onComplete) {
+        const el = document.getElementById('intro-text');
+        el.textContent = title;
+        el.style.opacity = 0;
+        el.style.left = '-100%';
 
-        const containerWidth = document.getElementById('game-container').offsetWidth;
-        const textWidth = intro.offsetWidth;
+        const container = document.getElementById('game-container');
+        const containerWidth = container.offsetWidth;
+        const textWidth = el.offsetWidth || 600; // fallback
         const centerLeft = (containerWidth - textWidth) / 2;
+        const stopLeft = containerWidth * 0.25 - textWidth / 2;
 
         let startTime;
-        function animate(timestamp) {
-            if (!startTime) startTime = timestamp;
-            const elapsed = timestamp - startTime;
+        function animate(ts) {
+            if (!startTime) startTime = ts;
+            const elapsed = ts - startTime;
 
             if (elapsed < 800) {
-                const progress = elapsed / 800;
-                const stopLeft = containerWidth * 0.25 - textWidth / 2;
-                intro.style.left = -textWidth + progress * (stopLeft + textWidth) + 'px';
+                const p = elapsed / 800;
+                el.style.left = (-textWidth + p * (stopLeft + textWidth)) + 'px';
+                el.style.opacity = p;
             } else if (elapsed < 1300) {
-                const slowProg = (elapsed - 800) / 500;
-                const stopLeft = containerWidth * 0.25 - textWidth / 2;
-                intro.style.left = (stopLeft + slowProg * (centerLeft - stopLeft)) + 'px';
+                const p = (elapsed - 800) / 500;
+                el.style.left = (stopLeft + p * (centerLeft - stopLeft)) + 'px';
             } else if (elapsed < 2300) {
-                intro.style.left = centerLeft + 'px';
+                el.style.left = centerLeft + 'px';
+                el.style.opacity = 1;
             } else if (elapsed < 2800) {
-                const outProg = (elapsed - 2300) / 500;
-                intro.style.left = (centerLeft + outProg * (containerWidth + textWidth)) + 'px';
+                const p = (elapsed - 2300) / 500;
+                el.style.left = (centerLeft + p * (containerWidth + textWidth)) + 'px';
+                el.style.opacity = 1 - p;
             } else {
-                intro.style.opacity = 0;
-                callback();
+                el.style.opacity = 0;
+                el.style.left = '-100%';
+                onComplete();
                 return;
             }
             requestAnimationFrame(animate);
         }
+
+        el.style.opacity = 1;
         requestAnimationFrame(animate);
+    }
+
+    function startIntroAnimation(callback) {
+        showSectionTitle("ΓΕΩΓΡΑΦΙΑ", callback);
     }
 
     function loadQuestion() {
@@ -287,6 +289,7 @@
             endQuiz();
             return;
         }
+
         const q = questions[currentQuestion];
         document.getElementById('current').textContent = currentQuestion + 1;
         document.getElementById('total').textContent = questions.length;
@@ -295,45 +298,46 @@
         document.getElementById('next-btn').style.display = 'none';
         document.getElementById('confirm-btn').style.display = 'none';
         document.getElementById('options-container').style.display = 'grid';
-
         selectedMulti = [];
+
         document.querySelectorAll('.option').forEach(opt => {
             opt.classList.remove('selected', 'empty');
             opt.style.pointerEvents = 'auto';
         });
 
         if (q.type === "mc" || q.type === "multi") {
-            document.getElementById('opt0').textContent = q.options[0];
-            document.getElementById('opt1').textContent = q.options[1];
+            document.getElementById('opt0').textContent = q.options[0] || '';
+            document.getElementById('opt1').textContent = q.options[1] || '';
             document.getElementById('opt2').textContent = q.options[2] || '';
             document.getElementById('opt3').textContent = q.options[3] || '';
 
             document.querySelectorAll('.option').forEach((opt, i) => {
-                if (q.options[i] === "") opt.classList.add('empty');
+                if (!q.options[i]) opt.classList.add('empty');
             });
 
             if (q.type === "mc") {
-                document.querySelectorAll('.option').forEach(opt => {
-                    if (!opt.classList.contains('empty')) {
-                        opt.onclick = () => checkAnswer(parseInt(opt.dataset.index));
-                    }
+                document.querySelectorAll('.option:not(.empty)').forEach(opt => {
+                    opt.onclick = () => checkAnswer(parseInt(opt.dataset.index));
                 });
             } else if (q.type === "multi") {
-                document.querySelectorAll('.option').forEach(opt => {
+                document.querySelectorAll('.option:not(.empty)').forEach(opt => {
                     opt.onclick = () => toggleMulti(opt);
                 });
                 document.getElementById('confirm-btn').style.display = 'block';
             }
         } else {
+            // text or doubletext
             document.getElementById('options-container').style.display = 'none';
-            let html = '<div style="width:100%; text-align:center;">' + q.question + '<br><br>';
+            let html = q.question + '<br><br>';
+
             if (q.type === "text") {
                 html += '<input type="text" id="text-input" class="text-input" placeholder="Γράψε την απάντηση..." autocomplete="off">';
             } else if (q.type === "doubletext") {
                 html += '<input type="text" id="text-input1" class="text-input" placeholder="1η λέξη..." autocomplete="off"><br><br>';
                 html += '<input type="text" id="text-input2" class="text-input" placeholder="2η λέξη..." autocomplete="off">';
             }
-            html += '<br><button id="submit-text" onclick="checkTextAnswer()">Υποβολή</button></div>';
+
+            html += '<br><button id="submit-text" onclick="checkTextAnswer()">Υποβολή</button>';
             document.getElementById('question').innerHTML = html;
         }
     }
@@ -356,20 +360,20 @@
     function checkAnswer(selected) {
         const q = questions[currentQuestion];
         const feedback = document.getElementById('feedback');
-        let correct = false;
+        let isCorrect = false;
         let correctText = "";
 
         if (q.type === "mc") {
-            correct = selected === q.correct;
-            correctText = q.options[q.correct];
+            isCorrect = selected === q.correct;
+            correctText = q.options[q.correct] || "";
         } else if (q.type === "multi") {
-            selected.sort((a,b) => a-b);
-            const correctArr = q.correct.slice().sort((a,b) => a-b);
-            correct = JSON.stringify(selected) === JSON.stringify(correctArr);
-            correctText = q.correct.map(i => q.options[i]).join(" και ");
+            const sortedSelected = [...selected].sort((a,b)=>a-b);
+            const sortedCorrect = [...q.correct].sort((a,b)=>a-b);
+            isCorrect = JSON.stringify(sortedSelected) === JSON.stringify(sortedCorrect);
+            correctText = q.correct.map(i => q.options[i]).filter(Boolean).join(" και ");
         }
 
-        if (correct) {
+        if (isCorrect) {
             score += 1000;
             document.getElementById('score').textContent = score;
             feedback.textContent = "Σωστό!";
@@ -378,8 +382,8 @@
             feedback.textContent = "Λάθος!\nΣωστή απάντηση: " + correctText;
             feedback.style.color = "#e91e3f";
         }
-        feedback.style.opacity = 1;
 
+        feedback.style.opacity = 1;
         document.querySelectorAll('.option').forEach(o => o.style.pointerEvents = 'none');
         document.getElementById('confirm-btn').style.display = 'none';
         document.getElementById('next-btn').style.display = 'block';
@@ -389,43 +393,40 @@
         const q = questions[currentQuestion];
         const feedback = document.getElementById('feedback');
 
-        if (q.type === "text") {
-            let ans = document.getElementById('text-input').value.trim().toLowerCase();
-            const correctAns = q.correct.toLowerCase();
-            const correct = ans === correctAns;
+        let isCorrect = false;
 
-            if (correct) {
-                score += 1000;
-                document.getElementById('score').textContent = score;
+        if (q.type === "text") {
+            let ans = (document.getElementById('text-input')?.value || "").trim().toLowerCase();
+            isCorrect = ans === q.correct.toLowerCase();
+            if (isCorrect) {
                 feedback.textContent = "Σωστό!";
                 feedback.style.color = "#39db50";
             } else {
-                feedback.textContent = "Λάθος!\nΣωστή απάντηση: " + q.correct;
+                feedback.textContent = "Λάθος!\nΣωστή: " + q.correct;
                 feedback.style.color = "#e91e3f";
             }
         } else if (q.type === "doubletext") {
-            let ans1 = document.getElementById('text-input1').value.trim().toLowerCase();
-            let ans2 = document.getElementById('text-input2').value.trim().toLowerCase();
-
+            let ans1 = (document.getElementById('text-input1')?.value || "").trim().toLowerCase();
+            let ans2 = (document.getElementById('text-input2')?.value || "").trim().toLowerCase();
             const c1 = q.correct1.toLowerCase();
             const c2 = q.correct2.toLowerCase();
+            isCorrect = ans1 === c1 && ans2 === c2;
 
-            let wrongParts = [];
-            if (ans1 !== c1) wrongParts.push(1);
-            if (ans2 !== c2) wrongParts.push(2);
-
-            let correct = wrongParts.length === 0;
-
-            if (correct) {
-                score += 1000;
-                document.getElementById('score').textContent = score;
+            if (isCorrect) {
                 feedback.textContent = "Σωστό!";
                 feedback.style.color = "#39db50";
             } else {
-                let msg = "Λάθος!\n(" + wrongParts.join(",") + ")\nΣωστές απαντήσεις: " + q.correct1 + ", " + q.correct2;
-                feedback.textContent = msg;
+                let parts = [];
+                if (ans1 !== c1) parts.push("1");
+                if (ans2 !== c2) parts.push("2");
+                feedback.textContent = `Λάθος!\n(${parts.join(",")})\nΣωστές: ${q.correct1}, ${q.correct2}`;
                 feedback.style.color = "#e91e3f";
             }
+        }
+
+        if (isCorrect) {
+            score += 1000;
+            document.getElementById('score').textContent = score;
         }
 
         feedback.style.opacity = 1;
@@ -434,7 +435,18 @@
 
     function nextQuestion() {
         currentQuestion++;
-        loadQuestion();
+
+        if (currentQuestion === 2) {
+            showSectionTitle("ΙΣΤΟΡΙΑ", loadQuestion);
+        } else if (currentQuestion === 3) {
+            showSectionTitle("ΧΑΡΑΚΤΗΡΙΣΤΙΚΑ", loadQuestion);
+        } else if (currentQuestion === 4) {
+            showSectionTitle("ΑΡΧΑΙΟΤΗΤΑ", loadQuestion);
+        } else if (currentQuestion === 5) {
+            showSectionTitle("ΓΕΩΓΡΑΦΙΑ", loadQuestion);
+        } else {
+            loadQuestion();
+        }
     }
 
     function endQuiz() {
@@ -446,11 +458,8 @@
     window.onload = () => {
         document.getElementById('options-container').style.display = 'none';
         document.getElementById('question').textContent = '';
-        startIntroAnimation(() => {
-            loadQuestion();
-        });
+        startIntroAnimation(loadQuestion);
     };
 </script>
 </body>
 </html>
-
