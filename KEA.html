@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Κουίζ Γεωγραφίας - Κέα</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif;
+            height: 100vh;
+            background: #000 url('background.jpg') center center / cover no-repeat fixed;
+            color: white;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            max-width: 177.78vh; /* 16:9 */
+            max-height: 56.25vw;
+            position: relative;
+            background: rgba(0, 0, 0, 0.45);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 2.2vh;
+            padding: 1vh 3vh;
+        }
+        #score-display { font-size: 3vh; }
+        #question {
+            font-size: 5.5vh;
+            text-align: center;
+            padding: 0 10vh;
+            line-height: 1.3;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+        }
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 3vh;
+            padding: 0 5vh 5vh;
+            height: 45vh;
+        }
+        .option {
+            font-size: 4.5vh;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            position: relative;
+            transition: transform 0.2s;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+        }
+        .option:hover { transform: scale(1.05); }
+        .option.selected { transform: scale(1.1); box-shadow: 0 0 30px yellow; }
+        .option.empty { visibility: hidden; pointer-events: none; }
+        .red { background: #e91e3f; }
+        .blue { background: #1e90ff; }
+        .yellow { background: #ffdb0a; color: #000; }
+        .green { background: #39db50; }
+        .shape {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            font-size: 6vh;
+        }
+        #feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8vh;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.4s;
+            pointer-events: none;
+            text-shadow: 0 0 20px black;
+            white-space: pre-line;
+            text-align: center;
+        }
+        #next-btn, #confirm-btn {
+            position: absolute;
+            bottom: 4vh;
+            right: 5vh;
+            padding: 2vh 5vh;
+            font-size: 4vh;
+            background: #ff9800;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            display: none;
+        }
+        #end-screen {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #end-screen h1 { font-size: 10vh; }
+        #end-screen p { font-size: 6vh; margin: 4vh; }
+        #end-screen button { padding: 2vh 6vh; font-size: 4vh; background: #ff9800; border: none; border-radius: 15px; cursor: pointer; }
+        #intro-text {
+            position: absolute;
+            top: 50%;
+            left: -100%;
+            transform: translateY(-50%);
+            font-size: 18vh;
+            font-weight: bold;
+            white-space: nowrap;
+            text-shadow: 0 0 30px black;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .text-input {
+            padding: 2vh;
+            font-size: 4vh;
+            width: 60%;
+            margin: 2vh auto;
+            border-radius: 15px;
+            border: none;
+            text-align: center;
+        }
+        #submit-text {
+            padding: 2vh 4vh;
+            font-size: 4vh;
+            background: #ff9800;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-top: 2vh;
+        }
+    </style>
+</head>
+<body>
+<div id="game-container">
+    <div id="top-bar">
+        <div>Ερώτηση <span id="current">1</span> / <span id="total"></span></div>
+        <div id="score-display">Σκορ: <span id="score">0</span></div>
+    </div>
+    <div id="question"></div>
+    <div id="options-container" class="options">
+        <div class="option red" data-index="0">
+            <div class="shape">▲</div>
+            <span id="opt0"></span>
+        </div>
+        <div class="option blue" data-index="1">
+            <div class="shape">●</div>
+            <span id="opt1"></span>
+        </div>
+        <div class="option yellow" data-index="2">
+            <div class="shape">■</div>
+            <span id="opt2"></span>
+        </div>
+        <div class="option green" data-index="3">
+            <div class="shape">◆</div>
+            <span id="opt3"></span>
+        </div>
+    </div>
+    <div id="feedback"></div>
+    <button id="confirm-btn" onclick="confirmMulti()">Επιβεβαίωση</button>
+    <button id="next-btn" onclick="nextQuestion()">Επόμενο →</button>
+</div>
+
+<div id="intro-text">ΓΕΩΓΡΑΦΙΑ</div>
+
+<div id="end-screen">
+    <h1>Τέλος Κουίζ!</h1>
+    <p>Τελικό Σκορ: <span id="final-score">0</span></p>
+    <button onclick="location.reload()">Παίξε Ξανά</button>
+</div>
+
+<script>
+    const questions = [
+        {
+            type: "mc",
+            question: "Η Κέα είναι το δυτικότερο κατοικημένο νησί των Κυκλάδων;",
+            options: ["Ανατολικότερο", "Δυτικότερο", "", ""],
+            correct: 1
+        },
+        {
+            type: "text",
+            question: "Στην εποχή του ___ η Κέα είχε μεγάλο πληθυσμό",
+            correct: "χαλκού"
+        },
+        {
+            type: "mc",
+            question: "Η Κέα είχε πληθυσμό ___ κατοίκους",
+            options: ["3225", "2235", "3335", "2335"],
+            correct: 3
+        },
+        {
+            type: "multi",
+            question: "Οι κάτοικοι πρόσφεραν θυσίες στον αστέρα θεό _______ και στον _____",
+            options: ["Σεριο", "Ηρακλή", "Σείριο", "Δία"],
+            correct: [2, 3]
+        },
+        {
+            type: "doubletext",
+            question: "Στη ____ αυτοκρατορία οικοδομήθηκαν πολλές ______",
+            correct1: "βυζαντινή",
+            correct2: "εκκλησίες"
+        },
+        {
+            type: "text",
+            question: "Η Κέα είναι το δυτικότερο νησί των _____",
+            correct: "Κυκλάδων"
+        }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    let selectedMulti = [];
+
+    // ────────────────────────────────────────────────
+    // Reusable section title animation
+    // ────────────────────────────────────────────────
+    function showSectionTitle(title, onComplete) {
+        const el = document.getElementById('intro-text');
+        el.textContent = title;
+        el.style.opacity = 0;
+        el.style.left = '-100%';
+
+        const container = document.getElementById('game-container');
+        const containerWidth = container.offsetWidth;
+        const textWidth = el.offsetWidth || 600; // fallback
+        const centerLeft = (containerWidth - textWidth) / 2;
+        const stopLeft = containerWidth * 0.25 - textWidth / 2;
+
+        let startTime;
+        function animate(ts) {
+            if (!startTime) startTime = ts;
+            const elapsed = ts - startTime;
+
+            if (elapsed < 800) {
+                const p = elapsed / 800;
+                el.style.left = (-textWidth + p * (stopLeft + textWidth)) + 'px';
+                el.style.opacity = p;
+            } else if (elapsed < 1300) {
+                const p = (elapsed - 800) / 500;
+                el.style.left = (stopLeft + p * (centerLeft - stopLeft)) + 'px';
+            } else if (elapsed < 2300) {
+                el.style.left = centerLeft + 'px';
+                el.style.opacity = 1;
+            } else if (elapsed < 2800) {
+                const p = (elapsed - 2300) / 500;
+                el.style.left = (centerLeft + p * (containerWidth + textWidth)) + 'px';
+                el.style.opacity = 1 - p;
+            } else {
+                el.style.opacity = 0;
+                el.style.left = '-100%';
+                onComplete();
+                return;
+            }
+            requestAnimationFrame(animate);
+        }
+
+        el.style.opacity = 1;
+        requestAnimationFrame(animate);
+    }
+
+    function startIntroAnimation(callback) {
+        showSectionTitle("ΓΕΩΓΡΑΦΙΑ", callback);
+    }
+
+    function loadQuestion() {
+        if (currentQuestion >= questions.length) {
+            endQuiz();
+            return;
+        }
+
+        const q = questions[currentQuestion];
+        document.getElementById('current').textContent = currentQuestion + 1;
+        document.getElementById('total').textContent = questions.length;
+        document.getElementById('question').innerHTML = q.question;
+        document.getElementById('feedback').style.opacity = 0;
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('confirm-btn').style.display = 'none';
+        document.getElementById('options-container').style.display = 'grid';
+        selectedMulti = [];
+
+        document.querySelectorAll('.option').forEach(opt => {
+            opt.classList.remove('selected', 'empty');
+            opt.style.pointerEvents = 'auto';
+        });
+
+        if (q.type === "mc" || q.type === "multi") {
+            document.getElementById('opt0').textContent = q.options[0] || '';
+            document.getElementById('opt1').textContent = q.options[1] || '';
+            document.getElementById('opt2').textContent = q.options[2] || '';
+            document.getElementById('opt3').textContent = q.options[3] || '';
+
+            document.querySelectorAll('.option').forEach((opt, i) => {
+                if (!q.options[i]) opt.classList.add('empty');
+            });
+
+            if (q.type === "mc") {
+                document.querySelectorAll('.option:not(.empty)').forEach(opt => {
+                    opt.onclick = () => checkAnswer(parseInt(opt.dataset.index));
+                });
+            } else if (q.type === "multi") {
+                document.querySelectorAll('.option:not(.empty)').forEach(opt => {
+                    opt.onclick = () => toggleMulti(opt);
+                });
+                document.getElementById('confirm-btn').style.display = 'block';
+            }
+        } else {
+            // text or doubletext
+            document.getElementById('options-container').style.display = 'none';
+            let html = q.question + '<br><br>';
+
+            if (q.type === "text") {
+                html += '<input type="text" id="text-input" class="text-input" placeholder="Γράψε την απάντηση..." autocomplete="off">';
+            } else if (q.type === "doubletext") {
+                html += '<input type="text" id="text-input1" class="text-input" placeholder="1η λέξη..." autocomplete="off"><br><br>';
+                html += '<input type="text" id="text-input2" class="text-input" placeholder="2η λέξη..." autocomplete="off">';
+            }
+
+            html += '<br><button id="submit-text" onclick="checkTextAnswer()">Υποβολή</button>';
+            document.getElementById('question').innerHTML = html;
+        }
+    }
+
+    function toggleMulti(opt) {
+        const idx = parseInt(opt.dataset.index);
+        if (selectedMulti.includes(idx)) {
+            selectedMulti = selectedMulti.filter(i => i !== idx);
+            opt.classList.remove('selected');
+        } else {
+            selectedMulti.push(idx);
+            opt.classList.add('selected');
+        }
+    }
+
+    function confirmMulti() {
+        checkAnswer(selectedMulti);
+    }
+
+    function checkAnswer(selected) {
+        const q = questions[currentQuestion];
+        const feedback = document.getElementById('feedback');
+        let isCorrect = false;
+        let correctText = "";
+
+        if (q.type === "mc") {
+            isCorrect = selected === q.correct;
+            correctText = q.options[q.correct] || "";
+        } else if (q.type === "multi") {
+            const sortedSelected = [...selected].sort((a,b)=>a-b);
+            const sortedCorrect = [...q.correct].sort((a,b)=>a-b);
+            isCorrect = JSON.stringify(sortedSelected) === JSON.stringify(sortedCorrect);
+            correctText = q.correct.map(i => q.options[i]).filter(Boolean).join(" και ");
+        }
+
+        if (isCorrect) {
+            score += 1000;
+            document.getElementById('score').textContent = score;
+            feedback.textContent = "Σωστό!";
+            feedback.style.color = "#39db50";
+        } else {
+            feedback.textContent = "Λάθος!\nΣωστή απάντηση: " + correctText;
+            feedback.style.color = "#e91e3f";
+        }
+
+        feedback.style.opacity = 1;
+        document.querySelectorAll('.option').forEach(o => o.style.pointerEvents = 'none');
+        document.getElementById('confirm-btn').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    function checkTextAnswer() {
+        const q = questions[currentQuestion];
+        const feedback = document.getElementById('feedback');
+
+        let isCorrect = false;
+
+        if (q.type === "text") {
+            let ans = (document.getElementById('text-input')?.value || "").trim().toLowerCase();
+            isCorrect = ans === q.correct.toLowerCase();
+            if (isCorrect) {
+                feedback.textContent = "Σωστό!";
+                feedback.style.color = "#39db50";
+            } else {
+                feedback.textContent = "Λάθος!\nΣωστή: " + q.correct;
+                feedback.style.color = "#e91e3f";
+            }
+        } else if (q.type === "doubletext") {
+            let ans1 = (document.getElementById('text-input1')?.value || "").trim().toLowerCase();
+            let ans2 = (document.getElementById('text-input2')?.value || "").trim().toLowerCase();
+            const c1 = q.correct1.toLowerCase();
+            const c2 = q.correct2.toLowerCase();
+            isCorrect = ans1 === c1 && ans2 === c2;
+
+            if (isCorrect) {
+                feedback.textContent = "Σωστό!";
+                feedback.style.color = "#39db50";
+            } else {
+                let parts = [];
+                if (ans1 !== c1) parts.push("1");
+                if (ans2 !== c2) parts.push("2");
+                feedback.textContent = `Λάθος!\n(${parts.join(",")})\nΣωστές: ${q.correct1}, ${q.correct2}`;
+                feedback.style.color = "#e91e3f";
+            }
+        }
+
+        if (isCorrect) {
+            score += 1000;
+            document.getElementById('score').textContent = score;
+        }
+
+        feedback.style.opacity = 1;
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    function nextQuestion() {
+        currentQuestion++;
+
+        if (currentQuestion === 2) {
+            showSectionTitle("ΙΣΤΟΡΙΑ", loadQuestion);
+        } else if (currentQuestion === 3) {
+            showSectionTitle("ΧΑΡΑΚΤΗΡΙΣΤΙΚΑ", loadQuestion);
+        } else if (currentQuestion === 4) {
+            showSectionTitle("ΑΡΧΑΙΟΤΗΤΑ", loadQuestion);
+        } else if (currentQuestion === 5) {
+            showSectionTitle("ΓΕΩΓΡΑΦΙΑ", loadQuestion);
+        } else {
+            loadQuestion();
+        }
+    }
+
+    function endQuiz() {
+        document.getElementById('game-container').style.display = 'none';
+        document.getElementById('end-screen').style.display = 'flex';
+        document.getElementById('final-score').textContent = score;
+    }
+
+    window.onload = () => {
+        document.getElementById('options-container').style.display = 'none';
+        document.getElementById('question').textContent = '';
+        startIntroAnimation(loadQuestion);
+    };
+</script>
+</body>
+</html>
